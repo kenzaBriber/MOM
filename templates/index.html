@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recherche UniProt</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+  <div class="container my-4">
+    <h2 class="text-center">Recherche dans UniProt</h2>
+    
+    <!-- Formulaire de recherche -->
+    <div class="card p-3 shadow-sm">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <input type="text" id="query" class="form-control" placeholder="Tapez votre requête">
+        </div>
+        <div class="col-md-2">
+          <input type="number" id="minLength" class="form-control" placeholder="Min. longueur">
+        </div>
+        <div class="col-md-2">
+          <input type="number" id="maxLength" class="form-control" placeholder="Max. longueur">
+        </div>
+        <div class="col-md-2">
+          <input type="text" id="geneFilter" class="form-control" placeholder="Nom du gène">
+        </div>
+        <div class="col-md-2 d-grid">
+          <button id="searchBtn" class="btn btn-primary">Rechercher</button>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <input type="checkbox" id="filterHuman" class="form-check-input">
+        <label for="filterHuman" class="form-check-label">Afficher uniquement les GPER humains</label>
+
+        <input type="checkbox" id="filterPDB" class="form-check-input ms-3">
+        <label for="filterPDB" class="form-check-label">Avec structure PDB</label>
+      </div>
+    </div>
+
+    <!-- Résultats ( row pour utiliser une grille bootstrap)-->
+    <div id="results" class="mt-4 row"></div>
+  </div>
+
+  <!-- Bootstrap & Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.getElementById("searchBtn").addEventListener("click", doSearch);
+    const resultsDiv = document.getElementById("results");
+
+    function doSearch() {
+      const query = document.getElementById("query").value.trim();
+      const filterHuman = document.getElementById("filterHuman").checked;
+      const filterPDB = document.getElementById("filterPDB").checked;
+      const minLength = parseInt(document.getElementById("minLength").value) || 0;
+      const maxLength = parseInt(document.getElementById("maxLength").value) || Infinity;
+      const geneFilter = document.getElementById("geneFilter").value.trim().toLowerCase();
+
+      if (!query) {
+        alert("Veuillez saisir une requête");
+        return;
+      }
+
+      fetch(`/search?query=${encodeURIComponent(query)}`)
+      
+        .then(response => response.json()) 
+        .then(data => {
+          resultsDiv.innerHTML = "";
+          if (data.error) {
+            resultsDiv.innerText = data.error;
+            return;
+          }
+          
+          let results = data.results;
+          if (filterHuman) {
+            results = results.filter(item => item.organism?.scientificName?.includes("Homo sapiens"));
+          }
+          results = results.filter(item => {
+            const length = item.sequence?.length || 0;
+            return length >= minLength && length <= maxLength;
+          });
+          if (filterPDB) {
+            results = results.filter(item => item.uniProtKBCrossReferences?.some(ref => ref.database === "PDB"));
+          }
+          if (geneFilter) {
+            results = results.filter(item =>
+              item.genes?.some(g =>
+                g.geneName?.value.toLowerCase().includes(geneFilter) || 
+                g.synonyms?.some(syn => syn.value.toLowerCase().includes(geneFilter))
+              )
+            );
+          }
+
+          if (results.length > 0) {
+            results.forEach(item => {
+              const accession = item.primaryAccession || "VIDE";
+              const geneName = item.genes?.[0]?.geneName?.value || "VIDE";
+              const proteinName = item.proteinDescription?.recommendedName?.fullName?.value || "VIDE";
+              const organism = item.organism?.scientificName || "N/A";
+              const length = item.sequence?.length || "N/A";
+
+              const card = document.createElement("div");
+              card.className = "col-md-4";
+              card.innerHTML = `
+                <div class="card shadow-sm mb-3">
+                  <div class="card-body">
+                    <h5 class="card-title">${proteinName}</h5>
+                    <p class="card-text"><strong>Gène :</strong> ${geneName}</p>
+                    <p class="card-text"><strong>Organisme :</strong> ${organism}</p>
+                    <p class="card-text"><strong>Longueur :</strong> ${length}</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modal-${accession}">
+                      Détails
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Modal -->
+                <div class="modal fade" id="modal-${accession}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title">${proteinName}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body">
+                        <p><strong>Accession :</strong> ${accession}</p>
+                        <p><strong>Gène :</strong> ${geneName}</p>
+                        <p><strong>Organisme :</strong> ${organism}</p>
+                        <p><strong>Longueur :</strong> ${length}</p>
+                        <p><strong>Structure PDB :</strong> ${getPDBLinks(item)}</p>
+                        <hr>
+                        <h5>Médicaments associés :</h5>
+                        <div id="medicaments-${accession}">Chargement...</div>
+                        <button class="btn btn-secondary mt-2" onclick="getMedicaments('${accession}')">
+                          Voir les Médicaments
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              resultsDiv.appendChild(card);
+            });
+          } else {
+            resultsDiv.innerHTML = `<div class="alert alert-warning">Aucun résultat trouvé</div>`;
+          }
+        })
+        .catch(err => {
+          console.error("Erreur :", err);
+          resultsDiv.innerHTML = `<div class="alert alert-danger">Erreur : ${err.message}</div>`;
+        });
+    }
+
+    function getPDBLinks(item) {
+      const pdbRefs = item.uniProtKBCrossReferences?.filter(ref => ref.database === "PDB") || [];
+      if (pdbRefs.length > 0) {
+        return pdbRefs.map(ref => 
+          `<a href="https://www.rcsb.org/structure/${ref.id}" target="_blank">${ref.id}</a>`
+        ).join(", ");
+      }
+      return "Aucune structure PDB disponible";
+    }
+    function getMedicaments(uniprot_id) {
+      const medDiv = document.getElementById(`medicaments-${uniprot_id}`);
+      medDiv.innerHTML = "Recherche en cours...";
+
+      fetch(`/medicaments?uniprot_id=${uniprot_id}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            medDiv.innerHTML = `<p class="text-danger">${data.error}</p>`;
+            return;
+          }
+
+          if (data.drugs && data.drugs.length > 0) {
+            let list = "<ul>";
+            data.drugs.forEach(drug => {
+              list += `<li>${drug.pref_name} (ID: ${drug.molecule_chembl_id})</li>`;
+            });
+            list += "</ul>";
+            medDiv.innerHTML = list;
+          } else {
+            medDiv.innerHTML = "<p>Aucun médicament trouvé.</p>";
+          }
+        })
+        .catch(err => {
+          console.error("Erreur :", err);
+          medDiv.innerHTML = `<p class="text-danger">Erreur : ${err.message}</p>`;
+        });
+    }
+
+  </script>
+</body>
+</html>
