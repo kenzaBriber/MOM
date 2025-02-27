@@ -1,5 +1,6 @@
 import requests
 from flask import Flask, request, render_template, jsonify
+import json
 
 app = Flask(__name__)
 
@@ -9,7 +10,7 @@ def query_uniprot(query):
     params = {
         "query": query,
         "format": "json",
-        "fields": "id,accession,gene_names,protein_name,length,xref_pdb,organism_name,xref_drugbank",
+        "fields": "id,accession,gene_names,protein_name,length,xref_pdb,organism_name,xref_drugbank,xref_chembl,xref_pdb",
         "size":186
     }
     
@@ -17,7 +18,8 @@ def query_uniprot(query):
     
     if response.status_code == 200: # requete faite
         data= response.json()
-        print(data)
+        
+        
         return data
     else:
         return {"error": "Échec de la requête à UniProt"}
@@ -36,6 +38,8 @@ def search():
         return jsonify({"error": "Aucune requête fournie"}), 400
     
     data = query_uniprot(query)
+    with open("dump.json", "w") as json_file:
+        json.dump(data, json_file, indent=4)
     return jsonify(data)
 
 
