@@ -9,7 +9,7 @@ def query_uniprot(query):
     params = {
         "query": query,
         "format": "json",
-        "fields": "id,accession,gene_names,protein_name,length,xref_pdb,organism_name,xref_drugbank,xref_chembl",
+        "fields": "id,accession,gene_names,protein_name,length,xref_pdb,organism_name,xref_drugbank",
         "size":3
     }
     
@@ -38,7 +38,20 @@ def search():
     data = query_uniprot(query)
     return jsonify(data)
 
-
+def get_chembl_id_from_uniprot(uniprot_id):
+    url = f"https://rest.uniprot.org/uniprotkb/{uniprot_id}.json"
+    resp=requests.get(url)
+    if resp.status_code == 200:
+        data = resp.json()
+        chembl_refs = [
+            ref["id"] for ref in data.get("uniProtKBCrossReferences", [])
+            if ref.get("database") == "ChEMBL"
+        ]
+        return chembl_refs[0] if chembl_refs else None
+    return None
 
 if __name__ == "__main__":
+    chembl_id=get_chembl_id_from_uniprot("F7EQ49")
+    print(chembl_id)
     app.run(debug=True)
+    
