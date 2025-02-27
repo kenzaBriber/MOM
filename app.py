@@ -42,7 +42,20 @@ def search():
         json.dump(data, json_file, indent=4)
     return jsonify(data)
 
-
+def get_chembl_id_from_uniprot(uniprot_id):
+    url = f"https://rest.uniprot.org/uniprotkb/{uniprot_id}.json"
+    resp=requests.get(url)
+    if resp.status_code == 200:
+        data = resp.json()
+        chembl_refs = [
+            ref["id"] for ref in data.get("uniProtKBCrossReferences", [])
+            if ref.get("database") == "ChEMBL"
+        ]
+        return chembl_refs[0] if chembl_refs else None
+    return None
 
 if __name__ == "__main__":
+    chembl_id=get_chembl_id_from_uniprot("F7EQ49")
+    print(chembl_id)
     app.run(debug=True)
+    
