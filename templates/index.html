@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Recherche UniProt</title>
+  <title>Recherche UniProt (DrugBank seulement)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 
   <div class="container my-4">
-    <h2 class="text-center">Recherche dans UniProt</h2>
+    <h2 class="text-center">Recherche dans UniProt (DrugBank)</h2>
     
     <!-- Formulaire de recherche -->
     <div class="card p-3 shadow-sm">
@@ -40,7 +40,7 @@
       </div>
     </div>
 
-    <!-- Résultats ( row pour utiliser une grille bootstrap)-->
+    <!-- Résultats (row pour utiliser une grille bootstrap) -->
     <div id="results" class="mt-4 row"></div>
   </div>
 
@@ -63,8 +63,8 @@
         return;
       }
 
+      // Requête vers ton serveur Flask (ex: /search) qui interroge UniProt
       fetch(`/search?query=${encodeURIComponent(query)}`)
-      
         .then(response => response.json()) 
         .then(data => {
           resultsDiv.innerHTML = "";
@@ -74,16 +74,20 @@
           }
           
           let results = data.results;
+          // Filtre: si "Afficher uniquement les GPER humains" est coché
           if (filterHuman) {
             results = results.filter(item => item.organism?.scientificName?.includes("Homo sapiens"));
           }
+          // Filtre sur longueur
           results = results.filter(item => {
             const length = item.sequence?.length || 0;
             return length >= minLength && length <= maxLength;
           });
+          // Filtre: structure PDB
           if (filterPDB) {
             results = results.filter(item => item.uniProtKBCrossReferences?.some(ref => ref.database === "PDB"));
           }
+          // Filtre: nom du gène
           if (geneFilter) {
             results = results.filter(item =>
               item.genes?.some(g =>
@@ -93,6 +97,7 @@
             );
           }
 
+          // Affichage des résultats
           if (results.length > 0) {
             results.forEach(item => {
               const accession = item.primaryAccession || "VIDE";
@@ -130,12 +135,10 @@
                         <p><strong>Organisme :</strong> ${organism}</p>
                         <p><strong>Longueur :</strong> ${length}</p>
                         <p><strong>Structure PDB :</strong> ${getPDBLinks(item)}</p>
+
                         <hr>
-                        <h5>Médicaments associés :</h5>
-                        <div id="medicaments-${accession}">Chargement...</div>
-                        <button class="btn btn-secondary mt-2" onclick="getMedicaments('${accession}')">
-                          Voir les Médicaments
-                        </button>
+                        <h5>Médicaments (DrugBank) :</h5>
+                        ${getDrugbankLinks(item)}
                       </div>
                     </div>
                   </div>
@@ -153,6 +156,7 @@
         });
     }
 
+    // Récupère les structures PDB
     function getPDBLinks(item) {
       const pdbRefs = item.uniProtKBCrossReferences?.filter(ref => ref.database === "PDB") || [];
       if (pdbRefs.length > 0) {
@@ -162,33 +166,28 @@
       }
       return "Aucune structure PDB disponible";
     }
-    function getMedicaments(uniprot_id) {
-      const medDiv = document.getElementById(`medicaments-${uniprot_id}`);
-      medDiv.innerHTML = "Recherche en cours...";
 
-      fetch(`/medicaments?uniprot_id=${uniprot_id}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.error) {
-            medDiv.innerHTML = `<p class="text-danger">${data.error}</p>`;
-            return;
-          }
+    // Récupère les médicaments DrugBank présents dans les crossReferences d’UniProt
+    function getDrugbankLinks(item) {
+      const drugbankRefs = item.uniProtKBCrossReferences?.filter(ref => ref.database === "DrugBank") || [];
 
-          if (data.drugs && data.drugs.length > 0) {
-            let list = "<ul>";
-            data.drugs.forEach(drug => {
-              list += `<li>${drug.pref_name} (ID: ${drug.molecule_chembl_id})</li>`;
-            });
-            list += "</ul>";
-            medDiv.innerHTML = list;
-          } else {
-            medDiv.innerHTML = "<p>Aucun médicament trouvé.</p>";
-          }
-        })
-        .catch(err => {
-          console.error("Erreur :", err);
-          medDiv.innerHTML = `<p class="text-danger">Erreur : ${err.message}</p>`;
-        });
+      if (drugbankRefs.length === 0) {
+        return "Aucun médicament (DrugBank) référencé";
+      }
+
+      let list = "<ul>";
+      drugbankRefs.forEach(ref => {
+        // Tenter de récupérer le GenericName
+        const genericNameProp = ref.properties?.find(prop => prop.key === "GenericName");
+        const genericName = genericNameProp ? genericNameProp.value : "Nom inconnu";
+        
+        list += `<li>${genericName} 
+      (<a href="https://go.drugbank.com/drugs/${ref.id}" target="_blank">${ref.id}</a>)
+    </li>`;
+      });
+      list += "</ul>";
+
+      return list;
     }
 
   </script>

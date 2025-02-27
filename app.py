@@ -9,8 +9,8 @@ def query_uniprot(query):
     params = {
         "query": query,
         "format": "json",
-        "fields": "id,accession,gene_names,protein_name,length,xref_pdb,organism_name,xref_drugbank",
-        "size":186
+        "fields": "id,accession,gene_names,protein_name,length,xref_pdb,organism_name,xref_drugbank,xref_chembl",
+        "size":3
     }
     
     response = requests.get(url, params=params)
