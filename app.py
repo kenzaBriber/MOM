@@ -1,9 +1,7 @@
 import requests
 from flask import Flask, request, render_template, jsonify
 
-from chembl_webresource_client.new_client import new_client
 
-activity_client = new_client.activity  # Définition du client pour récupérer les activités
 
 
 import json

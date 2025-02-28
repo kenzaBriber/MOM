@@ -30,6 +30,13 @@
         <div class="col-md-2">
           <input type="text" id="geneFilter" class="form-control" placeholder="Nom du gène">
         </div>
+
+        <div class="form-check form-check-inline">
+          <input type="checkbox" id="filterDrugbank" class="form-check-input">
+          <label for="filterDrugbank" class="form-check-label">Associé à un médicament</label>
+        </div>
+ 
+
         <div class="col-md-2 d-grid">
           <button id="searchBtn" class="btn btn-primary">Rechercher</button>
         </div>
@@ -61,6 +68,7 @@
       const minLength = parseInt(document.getElementById("minLength").value) || 0;
       const maxLength = parseInt(document.getElementById("maxLength").value) || Infinity;
       const geneFilter = document.getElementById("geneFilter").value.trim().toLowerCase();
+      const filterDrugbank = document.getElementById("filterDrugbank").checked;
 
       if (!query) {
         alert("Veuillez saisir une requête");
@@ -100,6 +108,13 @@
               )
             );
           }
+
+          if (filterDrugbank) {
+           results = results.filter(item =>
+             item.uniProtKBCrossReferences?.some(ref => ref.database === "DrugBank")
+           );
+         }
+
 
           // Affichage des résultats
           if (results.length > 0) {
