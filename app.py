@@ -1,8 +1,12 @@
 import requests
 from flask import Flask, request, render_template, jsonify
+
 from chembl_webresource_client.new_client import new_client
 
 activity_client = new_client.activity  # Définition du client pour récupérer les activités
+
+
+import json
 
 
 app = Flask(__name__)
@@ -13,15 +17,19 @@ def query_uniprot(query):
     params = {
         "query": query,
         "format": "json",
+
         "fields": "id,accession,gene_names,protein_name,length,xref_pdb,organism_name,xref_drugbank",
         "size":50
     }
+
+
     
     response = requests.get(url, params=params)
     
     if response.status_code == 200: # requete faite
         data= response.json()
-        print(data)
+        
+        
         return data
     else:
         return {"error": "Échec de la requête à UniProt"}
@@ -40,6 +48,8 @@ def search():
         return jsonify({"error": "Aucune requête fournie"}), 400
     
     data = query_uniprot(query)
+    with open("dump.json", "w") as json_file:
+        json.dump(data, json_file, indent=4)
     return jsonify(data)
 
 def search_gper_in_chembl():
@@ -155,9 +165,3 @@ def get_molecule_name(molecule_chembl_id):
 
 if __name__ == "__main__":
     app.run(debug=True)
-    
-
-
-
-
-    

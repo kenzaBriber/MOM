@@ -141,7 +141,7 @@
                         <p><strong>Organisme :</strong> ${organism}</p>
                         <p><strong>Longueur :</strong> ${length}</p>
                         <p><strong>Structure PDB :</strong> ${getPDBLinks(item)}</p>
-
+                        <p><strong>Fichiers téléchargables .pdb :</strong> ${getPdbDlLinks(item)}</p>
                         <hr>
                         <h5>Médicaments (DrugBank) :</h5>
                         ${getDrugbankLinks(item)}
@@ -172,6 +172,18 @@
       }
       return "Aucune structure PDB disponible";
     }
+
+    function getPdbDlLinks(item) {
+      const pdbRefs = item.uniProtKBCrossReferences?.filter(ref => ref.database === "PDB" && ref.id !== "8XOF" && ref.id !== "8U4T") || [];
+      if (pdbRefs.length > 0) {
+        return pdbRefs.map(ref => 
+          `<a href="https://files.wwpdb.org/pub/pdb/data/structures/divided/pdb/${ref.id.toLowerCase().slice(1,3)}/pdb${ref.id.toLowerCase()}.ent.gz" download="${ref.id}.ent.gz" target="_blank">${ref.id}</a>`
+        ).join(", ");
+      }
+      return "Aucun fichier téléchargable"
+    }
+
+
 
     // Récupère les médicaments DrugBank présents dans les crossReferences d’UniProt
     function getDrugbankLinks(item) {
