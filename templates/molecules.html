@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>GPER trouvés dans ChEMBL</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+
+<div class="container my-4">
+  <h2>Résultats de la recherche GPER dans ChEMBL</h2>
+  <a href="/" class="btn btn-secondary mb-3">← Retour à l'accueil</a>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% else %}
+    {% for target in gper_targets %}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">
+            {{ target.pref_name }} 
+            (ChEMBL ID: 
+              <a href="https://www.ebi.ac.uk/chembl/target_report_card/{{ target.chembl_id }}/" target="_blank">
+                {{ target.chembl_id }}
+              </a>)
+          </h5>
+          <p><strong>UniProt:</strong> 
+            {% if target.uniprot_ids %}
+              {% for uniprot in target.uniprot_ids %}
+                <a href="https://www.uniprot.org/uniprotkb/{{ uniprot }}" target="_blank">
+                  {{ uniprot }}
+                </a>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            {% else %}
+              Aucun
+            {% endif %}
+          </p>
+          
+          <!-- Tableau des molécules associées -->
+          <h6>Molécules associées ({{ target.molecules|length }})</h6>
+          {% if target.molecules %}
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th>Nom</th>  <!-- Ajout du nom de la molécule -->
+                  <th>ChEMBL ID</th>
+                  <th>Type</th>
+                  <th>Valeur</th>
+                  <th>Unités</th>
+                  <th>pChEMBL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for mol in target.molecules %}
+                <tr>
+                  <td>{{ mol.molecule_name or "Inconnu" }}</td>  <!-- Afficher le nom -->
+                  <td>
+                    <a href="https://www.ebi.ac.uk/chembl/compound_report_card/{{ mol.molecule_chembl_id }}/" target="_blank">
+                      {{ mol.molecule_chembl_id }}
+                    </a>
+                  </td>
+                  <td>{{ mol.standard_type or "N/A" }}</td>
+                  <td>{{ mol.standard_value or "N/A" }}</td>
+                  <td>{{ mol.standard_units or "" }}</td>
+                  <td>{{ mol.pchembl_value or "N/A" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p>Aucune molécule trouvée pour cette cible.</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+</body>
+</html>
