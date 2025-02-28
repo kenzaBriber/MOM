@@ -1,6 +1,8 @@
 import requests
-from flask import Flask, request, render_template, jsonify
-
+from flask import Flask, request, render_template, jsonify,redirect
+import subprocess
+import time
+import sys
 
 
 
@@ -160,6 +162,11 @@ def get_molecule_name(molecule_chembl_id):
         return data.get("pref_name", "Nom inconnu")  # Renvoie le nom, sinon "Nom inconnu"
     else:
         return "Nom inconnu"
-
+@app.route("/start_chatbot")
+def start_chatbot():
+    """Lance Streamlit en arrière-plan et redirige l'utilisateur vers l'interface du chatbot"""
+    subprocess.Popen([sys.executable, "-m", "streamlit", "run", "chat.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(3)  # Attendre que Streamlit démarre
+    return redirect("http://localhost:8501")
 if __name__ == "__main__":
     app.run(debug=True)

@@ -11,7 +11,7 @@
     <h2>Recherche des protéines GPER dans ChEMBL</h2>
     <a href="/search_gper" class="btn btn-primary">Rechercher GPER</a>
 </div>
-
+<button onclick="startChatbot()">Lancer le Chatbot</button>
   <div class="container my-4">
     <h2 class="text-center">Recherche dans UniProt (DrugBank)</h2>
     
@@ -222,6 +222,10 @@
 
       return list;
     }
+    function startChatbot() {
+            fetch('/start_chatbot')  // Appelle la route Flask qui lance Streamlit
+                .then(() => window.open('http://localhost:8501', '_blank')); // Ouvre Streamlit dans un nouvel onglet
+        }
 
   </script>
 </body>
