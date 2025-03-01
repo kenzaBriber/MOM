@@ -86,8 +86,8 @@ agent = initialize_agent(
 )
 
 # Interface utilisateur Streamlit
-st.title("Chatbot PubMed 🤖")
-user_query = st.text_input("Posez une question sur PubMed:")
+st.title("Chatbot PubMed 🧬")
+user_query = st.text_input("Vous recherchez des articles sur PubMed ? Saisissez les mots clés:")
 
 if st.button("Rechercher"):
     if user_query:
@@ -98,7 +98,7 @@ if st.button("Rechercher"):
         articles = search_pubmed_api(user_query, max_results=4)
         
         # 🟢 Afficher la réponse du LLM
-        st.markdown("## 🤖 Réponse du Chatbot")
+        st.markdown("## 🤖 Résumer géneral de la recherche")
         st.markdown(llm_response)
 
         # 🟢 Afficher les articles détaillés avec liens
